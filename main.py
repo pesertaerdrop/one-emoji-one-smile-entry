@@ -33,6 +33,28 @@ def main() -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     # Exactly one emoji, nothing else: no newline, no spaces, no caption.
     out_path.write_text(EMOJI, encoding="utf-8")
+    # Never trust the write blindly: one stray byte would void the entry,
+    # so re-read the file and fail the run if it is not exactly one emoji.
+    verify_entry(out_path)
+
+
+def verify_entry(out_path: Path) -> None:
+    """Re-read entry.txt and check it byte-for-byte.
+
+    This is a real post-write check, not a comment: the entry must be
+    exactly one emoji (U+1F601, one code point, four UTF-8 bytes) with
+    no trailing newline and no other text. If anything else was written
+    — a newline, a second character, a wrong code point — the entry is
+    invalid and the run must fail loudly instead of shipping it.
+    """
+    raw = out_path.read_bytes()
+    expected = EMOJI.encode("utf-8")
+    if raw != expected:
+        raise SystemExit(
+            f"entry.txt verification failed: expected exactly {expected!r} "
+            f"({len(expected)} bytes, one emoji U+1F601), "
+            f"got {raw!r} ({len(raw)} bytes)"
+        )
 
 
 if __name__ == "__main__":
